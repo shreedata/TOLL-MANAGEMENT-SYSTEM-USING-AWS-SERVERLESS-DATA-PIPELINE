@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Toll Management Portal</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg-color: #ffffff;
+            --text-color: #212529;
+            --text-muted-color: #6c757d;
+            --border-color: #dee2e6;
+            --primary-color: #0d6efd;
+            --primary-hover-color: #0b5ed7;
+            --success-color: #198754;
+            --success-hover-color: #157347;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --header-grad-start: #0c4a6e;
+            --header-grad-end: #0ea5e9;
+            --shadow-sm: rgba(0, 0, 0, 0.05);
+            --shadow-md: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg-color: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted-color: #94a3b8;
+            --border-color: #334155;
+            --primary-color: #38bdf8;
+            --primary-hover-color: #0ea5e9;
+            --success-color: #22c55e;
+            --success-hover-color: #16a34a;
+            --header-grad-start: #1e293b;
+            --header-grad-end: #334155;
+            --shadow-sm: rgba(0, 0, 0, 0.2);
+            --shadow-md: rgba(0, 0, 0, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-color);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- Views & Containers --- */
+        .view-container { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+        .main-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; background: var(--card-bg-color); border-radius: 12px; box-shadow: 0 4px 15px var(--shadow-sm); margin-bottom: 2rem; border: 1px solid var(--border-color); }
+        .main-header h1 { font-size: 1.8rem; color: var(--primary-color); }
+        .card { background: var(--card-bg-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 10px var(--shadow-sm); margin-bottom: 2rem; border: 1px solid var(--border-color); }
+        .card h2 { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+
+        /* --- Login View --- */
+        #loginView { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card { max-width: 450px; width: 100%; text-align: center; }
+        .login-card .logo { font-size: 3rem; margin-bottom: 1rem; }
+        .login-card p { color: var(--text-muted-color); margin-bottom: 2rem; }
+
+        /* --- Forms & Buttons --- */
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text-muted-color); }
+        input, select { background: var(--bg-color); color: var(--text-color); width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent); }
+        .btn { padding: 0.75rem 1.5rem; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; margin-top: 0.5rem; transition: background 0.2s, transform 0.1s; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: var(--primary-color); }
+        .btn-primary:hover { background: var(--primary-hover-color); }
+        .btn-success { background: var(--success-color); }
+        .btn-danger { background: var(--danger-color); }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.9rem; }
+        .btn.icon-btn { padding: 10px 14px; font-size: 1.1rem; margin: 0; }
+
+        /* --- Admin View Specifics --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .stat-card { background: linear-gradient(135deg, var(--header-grad-start), var(--header-grad-end)); color: white; padding: 1.5rem; border-radius: 10px; }
+        .stat-card .stat-number { font-size: 2.5rem; font-weight: 700; }
+        .stat-card .stat-label { font-size: 1rem; opacity: 0.8; }
+        
+        /* Card-based UI for Admin */
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .vehicle-card-mini { padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); }
+        .vehicle-card-mini .header { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; padding: 0; margin: 0; background: none; box-shadow: none; color: var(--text-color); }
+        .vehicle-card-mini .owner { font-size: 0.9rem; color: var(--text-muted-color); margin-top: 5px; }
+        .vehicle-card-action { display: grid; grid-template-columns: 1fr auto; gap: 20px; border: 1px solid var(--primary-color); padding: 25px; margin: 15px 0; border-radius: 12px; background: var(--card-bg-color); box-shadow: 0 1px 3px var(--shadow-sm); align-items: center; }
+        .vehicle-details .vehicle-number { font-size: 1.75rem; font-weight: 700; }
+        .vehicle-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;}
+        .vehicle-actions-balance { text-align: right; }
+        .vehicle-actions-balance .balance { font-size: 1.8rem; font-weight: 700; margin-bottom: 1rem; }
+        .balance-low { color: var(--danger-color); }
+        .balance-med { color: var(--warning-color); }
+        .balance-high { color: var(--success-color); }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
+
+
+        /* --- User View Specifics --- */
+        .user-dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 992px) { .user-dashboard-grid { grid-template-columns: 1fr 1fr; } }
+        .vehicle-display-card .vehicle-number { font-size: 2rem; font-weight: 700; }
+        .vehicle-display-card .balance-display { font-size: 3rem; font-weight: 800; margin: 1rem 0; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+
+        /* --- General Utilities --- */
+        .message { padding: 1rem; border-radius: 8px; margin: 1rem 0; font-weight: 600; border: 1px solid transparent; }
+        .success { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
+        .loading { text-align: center; padding: 2rem; color: var(--text-muted-color); font-size: 1.2rem; }
+        
+        .theme-switch-wrapper { display: flex; align-items: center; gap: 0.5rem; }
+        .theme-switch { display: inline-block; height: 24px; position: relative; width: 44px; }
+        .theme-switch input { display:none; }
+        .slider { background-color: #ccc; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s; }
+        .slider:before { background-color: #fff; bottom: 4px; content: ""; height: 16px; left: 4px; position: absolute; transition: .4s; width: 16px; }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .slider.round { border-radius: 24px; }
+        .slider.round:before { border-radius: 50%; }
+
+    </style>
+</head>
+<body>
+
+    <div id="app">
+
+        <div id="loginView" class="view-container">
+            <div class="card login-card">
+                <div class="logo">🛣️</div>
+                <h1>Toll Management Portal</h1>
+                <p>Sign in to access your dashboard.</p>
+                <form id="loginForm">
+                    <div class="form-group" style="text-align: left;"><label for="username">Username</label><input type="text" id="username" placeholder="Enter 'admin' or 'user'" required></div>
+                    <div class="form-group" style="text-align: left;"><label for="password">Password</label><input type="password" id="password" placeholder="any password" required></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                    <div id="login-message" class="message error hidden"></div>
+                </form>
+            </div>
+        </div>
+
+        <div id="adminView" class="view-container hidden">
+            <header class="main-header">
+                <div><h1>Admin Dashboard</h1><p style="color: var(--text-muted-color);">Toll Operation & Vehicle Management</p></div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="theme-switch-wrapper"><span>☀️</span><label class="theme-switch" for="theme-toggle-admin"><input type="checkbox" id="theme-toggle-admin"><div class="slider round"></div></label><span>🌙</span></div>
+                    <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+                </div>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-number" id="totalVehicles">...</div><div class="stat-label">Total Vehicles</div></div>
+                <div class="stat-card"><div class="stat-number" id="totalBalance">...</div><div class="stat-label">Total Wallet Balance</div></div>
+                <div class="stat-card"><div class="stat-number" id="totalTrips">...</div><div class="stat-label">Total Trips Recorded</div></div>
+            </div>
+
+            <div class="card">
+                <h2>Register New Vehicle</h2>
+                <form id="registerVehicleForm">
+                    <div class="form-group"><label for="vehicleNumber">Vehicle Number</label><input type="text" id="vehicleNumber" required></div>
+                    <div class="form-group"><label for="ownerName">Owner Name</label><input type="text" id="ownerName" required></div>
+                    <div class="form-group"><label for="balance">Initial Balance (₹)</label><input type="number" id="balance" required></div>
+                    <div class="form-group"><label for="tollFee">Toll Fee (₹)</label><input type="number" id="tollFee" required></div>
+                    <button type="submit" class="btn btn-success">Register Vehicle</button>
+                </form>
+                <div id="register-message" class="message hidden"></div>
+            </div>
+            
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                    <h2 style="margin-bottom:0; border-bottom: none; padding-bottom: 0;">Manage Vehicles</h2>
+                    <button class="btn icon-btn" onclick="renderAdminView()" title="Refresh Vehicle List">🔄</button>
+                </div>
+                <div class="form-group">
+                    <label for="adminSearch">Search Vehicle by Number or Owner</label>
+                    <input type="text" id="adminSearch" placeholder="Start typing to filter vehicles...">
+                </div>
+                <div id="adminVehicleList"><div class="loading">Loading vehicles...</div></div>
+                <div class="pagination" id="pagination-controls"></div>
+            </div>
+
+        </div>
+
+        <div id="userView" class="view-container hidden">
+            <header class="main-header">
+                <div><h1>My Dashboard</h1><p style="color: var(--text-muted-color);" id="welcome-user">Welcome, Vehicle Owner!</p></div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="theme-switch-wrapper"><span>☀️</span><label class="theme-switch" for="theme-toggle-user"><input type="checkbox" id="theme-toggle-user"><div class="slider round"></div></label><span>🌙</span></div>
+                    <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+                </div>
+            </header>
+            
+            <div class="user-dashboard-grid">
+                <div class="card vehicle-display-card">
+                    <h2>My Vehicle & Wallet</h2>
+                    <div id="userVehicleDetails"><div class="loading">Loading your vehicle details...</div></div>
+                </div>
+                <div class="card">
+                    <h2>Top-Up Wallet</h2>
+                    <p style="color: var(--text-muted-color); margin-bottom: 1.5rem;">Add funds to your wallet to ensure smooth passage.</p>
+                    <form id="topupForm">
+                        <div class="form-group"><label for="topupAmount">Amount to Add (₹)</label><input type="number" id="topupAmount" min="100" placeholder="e.g., 500" required></div>
+                        <button type="submit" class="btn btn-success">Add Funds</button>
+                    </form>
+                    <div id="topup-message" class="message hidden"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>My Transaction History</h2>
+                <div class="table-wrapper">
+                    <table id="userTransactionTable">
+                        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>New Balance</th></tr></thead>
+                        <tbody><tr><td colspan="4"><div class="loading">No transactions yet.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIG & STATE MANAGEMENT ---
+        const API_URL = 'https://1s0xaougxc.execute-api.ap-south-1.amazonaws.com/prod';
+        
+        const MOCK_USER_VEHICLE_NUMBER = 'MH01AB1234';
+
+        const appState = {
+            currentUser: null,
+            allVehicles: [],
+            isLoggedIn: false,
+            adminCurrentPage: 1,
+            adminRowsPerPage: 4,
+            adminFilteredList: [],
+            currentUserVehicle: null // To store the logged-in user's vehicle object
+        };
+
+        // --- DOM ELEMENTS ---
+        const views = { login: document.getElementById('loginView'), admin: document.getElementById('adminView'), user: document.getElementById('userView') };
+        const loginForm = document.getElementById('loginForm');
+        
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            setupTheme();
+            loginForm.addEventListener('submit', handleLogin);
+        };
+        
+        // --- THEME SWITCHER ---
+        function setupTheme() {
+            const storedTheme = localStorage.getItem('theme') || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+            document.documentElement.setAttribute('data-theme', storedTheme);
+            const toggles = [document.getElementById('theme-toggle-admin'), document.getElementById('theme-toggle-user')];
+            toggles.forEach(toggle => {
+                if (toggle) {
+                    toggle.checked = storedTheme === 'dark';
+                    toggle.addEventListener('change', function() {
+                        const newTheme = this.checked ? 'dark' : 'light';
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('theme', newTheme);
+                        toggles.forEach(t => t.checked = this.checked);
+                    });
+                }
+            });
+        }
+        
+        // --- AUTHENTICATION (SIMULATED) ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.toLowerCase();
+            if (username === 'admin') {
+                appState.currentUser = { username: 'admin' };
+                appState.isLoggedIn = true;
+                switchView('admin');
+                renderAdminView();
+            } else if (username === 'user') {
+                appState.currentUser = { username: 'user', vehicleNumber: MOCK_USER_VEHICLE_NUMBER };
+                appState.isLoggedIn = true;
+                switchView('user');
+                renderUserView();
+            } else {
+                showMessage('login-message', 'Invalid credentials. Use "admin" or "user".', 'error');
+            }
+        }
+        
+        function logout() {
+            appState.currentUser = null; appState.isLoggedIn = false; appState.currentUserVehicle = null;
+            document.getElementById('username').value = ''; document.getElementById('password').value = '';
+            switchView('login');
+        }
+
+        function switchView(viewName) {
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            if (views[viewName]) views[viewName].classList.remove('hidden');
+        }
+
+        // --- API HELPERS ---
+        async function fetchAPI(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, { mode: 'cors', ...options, headers: { 'Content-Type': 'application/json', ...options.headers }});
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `API Error: ${response.status}`);
+                }
+                return response.status === 204 ? null : await response.json();
+            } catch (error) {
+                console.error(`API call to ${endpoint} failed:`, error);
+                throw error;
+            }
+        }
+
+        // --- ADMIN VIEW RENDER FUNCTIONS ---
+        async function renderAdminView() {
+            try {
+                const result = await fetchAPI('/vehicles');
+                appState.allVehicles = result.vehicles || [];
+                
+                document.getElementById('totalVehicles').textContent = appState.allVehicles.length;
+                const totalBalance = appState.allVehicles.reduce((sum, v) => sum + (v.balance || 0), 0);
+                document.getElementById('totalBalance').textContent = `₹${totalBalance.toLocaleString('en-IN')}`;
+                const totalTrips = appState.allVehicles.reduce((sum, v) => sum + (v.trip_count || 0), 0);
+                document.getElementById('totalTrips').textContent = totalTrips;
+                
+                const searchInput = document.getElementById('adminSearch');
+                searchInput.onkeyup = () => filterAdminVehicles();
+                filterAdminVehicles();
+            } catch (error) {
+                const container = document.getElementById('adminVehicleList');
+                container.innerHTML = `<div class="message error">Failed to load vehicle data: ${error.message}</div>`;
+            }
+        }
+
+        function filterAdminVehicles() {
+            const query = document.getElementById('adminSearch').value.toLowerCase().trim();
+            appState.adminCurrentPage = 1;
+            if (!query) {
+                appState.adminFilteredList = appState.allVehicles;
+            } else {
+                appState.adminFilteredList = appState.allVehicles.filter(v =>
+                    v.owner_name?.toLowerCase().includes(query) ||
+                    v.vehicle_number?.toLowerCase().includes(query)
+                );
+            }
+            displayAdminVehicles();
+        }
+
+        function displayAdminVehicles() {
+            const container = document.getElementById('adminVehicleList');
+            container.innerHTML = '';
+            if (appState.adminFilteredList.length === 0) {
+                container.innerHTML = `<div class="loading">No vehicles found.</div>`;
+                setupAdminPagination();
+                return;
+            }
+            const startIndex = (appState.adminCurrentPage - 1) * appState.adminRowsPerPage;
+            const paginatedItems = appState.adminFilteredList.slice(startIndex, startIndex + appState.adminRowsPerPage);
+
+            paginatedItems.forEach(vehicle => {
+                const card = document.createElement('div');
+                card.className = 'vehicle-card-action';
+                card.innerHTML = getAdminVehicleCardHTML(vehicle);
+                container.appendChild(card);
+            });
+            setupAdminPagination();
+        }
+
+        function getAdminVehicleCardHTML(vehicle) {
+            const balanceClass = getBalanceClass(vehicle.balance, vehicle.vehicle_type_toll_fee);
+            return `
+                <div class="vehicle-details">
+                    <div class="vehicle-number">${vehicle.vehicle_number}</div>
+                    <div class="vehicle-info-grid">
+                        <div><strong>Owner:</strong> ${vehicle.owner_name}</div>
+                        <div><strong>Trips:</strong> ${vehicle.trip_count || 0}</div>
+                    </div>
+                </div>
+                <div class="vehicle-actions-balance">
+                    <div class="balance ${balanceClass}">₹${vehicle.balance.toLocaleString('en-IN')}</div>
+                    <div><button class="btn btn-danger btn-sm" onclick="deductToll('${vehicle.id}')">Deduct Toll (₹${vehicle.vehicle_type_toll_fee})</button></div>
+                </div>`;
+        }
+        
+        function setupAdminPagination() {
+            const container = document.getElementById('pagination-controls');
+            const pageCount = Math.ceil(appState.adminFilteredList.length / appState.adminRowsPerPage);
+            container.innerHTML = '';
+            if (pageCount <= 1) return;
+            
+            container.innerHTML = `<button id="prevPage" class="btn btn-sm" ${appState.adminCurrentPage === 1 ? 'disabled' : ''}>&laquo; Prev</button>
+                <span id="page-info">Page ${appState.adminCurrentPage} of ${pageCount}</span>
+                <button id="nextPage" class="btn btn-sm" ${appState.adminCurrentPage >= pageCount ? 'disabled' : ''}>Next &raquo;</button>`;
+            
+            document.getElementById('prevPage').onclick = () => { if (appState.adminCurrentPage > 1) { appState.adminCurrentPage--; displayAdminVehicles(); } };
+            document.getElementById('nextPage').onclick = () => { if (appState.adminCurrentPage < pageCount) { appState.adminCurrentPage++; displayAdminVehicles(); } };
+        }
+
+        // --- USER VIEW RENDER FUNCTIONS ---
+        async function renderUserView() {
+            document.getElementById('welcome-user').innerText = `Welcome, Owner of ${appState.currentUser.vehicleNumber}`;
+            try {
+                const result = await fetchAPI('/vehicles'); 
+                const myVehicle = result.vehicles.find(v => v.vehicle_number === appState.currentUser.vehicleNumber);
+                if (myVehicle) {
+                    appState.currentUserVehicle = myVehicle; // <-- Store vehicle object in state
+                    renderUserVehicleDetails(myVehicle);
+                    renderUserTransactions(myVehicle);
+                } else {
+                    document.getElementById('userVehicleDetails').innerHTML = `<div class="message error">Could not find your vehicle (${appState.currentUser.vehicleNumber}). Please contact support.</div>`;
+                }
+            } catch (error) {
+                document.getElementById('userVehicleDetails').innerHTML = `<div class="message error">Failed to load your vehicle data: ${error.message}</div>`;
+            }
+        }
+
+        function renderUserVehicleDetails(vehicle) {
+            const container = document.getElementById('userVehicleDetails');
+            const balanceClass = getBalanceClass(vehicle.balance, vehicle.vehicle_type_toll_fee);
+            container.innerHTML = `
+                <div class="vehicle-number">${vehicle.vehicle_number}</div>
+                <div class="balance-display ${balanceClass}">₹${vehicle.balance.toLocaleString('en-IN')}</div>
+                <div class="info-grid">
+                    <div><strong>Owner:</strong> ${vehicle.owner_name}</div>
+                    <div><strong>Toll Fee:</strong> ₹${vehicle.vehicle_type_toll_fee}</div>
+                    <div><strong>Total Trips:</strong> ${vehicle.trip_count || 0}</div>
+                </div>`;
+        }
+
+        function renderUserTransactions(vehicle) {
+            const tableBody = document.querySelector('#userTransactionTable tbody');
+            tableBody.innerHTML = `
+                <tr><td>2025-10-12</td><td>Toll Payment</td><td style="color:var(--danger-color)">-₹${vehicle.vehicle_type_toll_fee}</td><td>₹${vehicle.balance.toLocaleString('en-IN')}</td></tr>
+                <tr><td>2025-10-10</td><td>Wallet Top-up</td><td style="color:var(--success-color)">+₹500</td><td>₹${(vehicle.balance + vehicle.vehicle_type_toll_fee).toLocaleString('en-IN')}</td></tr>`;
+        }
+
+        // --- ACTIONS & EVENT HANDLERS ---
+        document.getElementById('registerVehicleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const vehicleData = {
+                vehicle_number: document.getElementById('vehicleNumber').value.trim().toUpperCase(),
+                owner_name: document.getElementById('ownerName').value.trim(),
+                balance: parseInt(document.getElementById('balance').value),
+                vehicle_type_toll_fee: parseInt(document.getElementById('tollFee').value),
+                trip_count: 0
+            };
+            try {
+                await fetchAPI('/vehicles', { method: 'POST', body: JSON.stringify(vehicleData) });
+                showMessage('register-message', '✅ Vehicle registered successfully!', 'success');
+                e.target.reset();
+                renderAdminView();
+            } catch (error) {
+                showMessage('register-message', `❌ Error: ${error.message}`, 'error');
+            }
+        });
+        
+        async function deductToll(vehicleId) {
+            const vehicle = appState.allVehicles.find(v => v.id === vehicleId);
+            if (!vehicle) {
+                showMessage('register-message', 'Error: Could not find vehicle data.', 'error');
+                return;
+            };
+
+            if (vehicle.balance < vehicle.vehicle_type_toll_fee) {
+                showMessage('register-message', 'Error: Insufficient balance!', 'error');
+                return;
+            }
+            
+            const payload = { 
+                vehicle_number: vehicle.vehicle_number,
+                owner_name: vehicle.owner_name,
+                balance: vehicle.balance - vehicle.vehicle_type_toll_fee, 
+                vehicle_type_toll_fee: vehicle.vehicle_type_toll_fee,
+                trip_count: (vehicle.trip_count || 0) + 1 
+            };
+
+            try {
+                await fetchAPI(`/vehicles/${vehicleId}`, { method: 'PUT', body: JSON.stringify(payload) });
+                await renderAdminView();
+                showMessage('register-message', '✅ Toll deducted successfully!', 'success');
+            } catch (error) {
+                showMessage('register-message', `Error deducting toll: ${error.message}`, 'error');
+            }
+        }
+
+        // --- **FIXED** Add Balance Functionality ---
+        document.getElementById('topupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('topupAmount').value);
+            if (!amount || amount <= 0) {
+                showMessage('topup-message', 'Please enter a valid amount.', 'error');
+                return;
+            }
+
+            const vehicleToUpdate = appState.currentUserVehicle;
+            if (!vehicleToUpdate) {
+                showMessage('topup-message', 'Error: Could not find user vehicle data to update.', 'error');
+                return;
+            }
+            
+            const payload = {
+                vehicle_number: vehicleToUpdate.vehicle_number,
+                owner_name: vehicleToUpdate.owner_name,
+                balance: vehicleToUpdate.balance + amount,
+                vehicle_type_toll_fee: vehicleToUpdate.vehicle_type_toll_fee,
+                trip_count: vehicleToUpdate.trip_count
+            };
+
+            try {
+                await fetchAPI(`/vehicles/${vehicleToUpdate.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+                showMessage('topup-message', `✅ Successfully added ₹${amount}.`, 'success');
+                e.target.reset();
+                renderUserView(); // Refresh user dashboard to show new balance
+            } catch (error) {
+                showMessage('topup-message', `❌ Error: ${error.message}`, 'error');
+            }
+        });
+
+        // --- UTILITIES ---
+        function getBalanceClass(balance, toll) {
+            const fee = toll || 0;
+            if (balance < fee * 2) return 'low'; if (balance < fee * 5) return 'med'; return 'high';
+        }
+        
+        function showMessage(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            el.className = `message ${type}`;
+            el.textContent = text;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+    </script>
+</body>
+</html>
+
